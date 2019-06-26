@@ -14,27 +14,45 @@ for filename in Path('./').glob('**/*.png'):
 
         ##
         # renaming image if it has incorrect format
+        # logo filename should contain only club name and file extension
         filename = str(filename)
-        newFilename = filename        
-        if (filename[-5:].lower() == '..png'):      # image lib cannot open files named this way    
-            newFilename =  filename.replace('..png', '.png')
-            os.rename(filename, newFilename)
-        if (filename[-5:].lower() == '_.png'):      # image lib cannot open files named this way
-            newFilename =  filename.replace('_.png', '.png')
-            os.rename(filename, newFilename)
-        if (filename[-7:] == '_sq.png'): # logo filename should contain only club name and file extension
-            newFilename =  filename.replace('_sq.png', '.png')
-            os.rename(filename, newFilename)
+        currentName = filename
+        newFilename = filename                
+        if (filename[-5:].lower() == '_.png'):
+            currentName = newFilename
+            newFilename =  currentName.replace('_.png', '.png')
+            os.rename(cirrentName, newFilename)
+        if (filename[-7:] == '_sq.png'):
+            currentName  = newFilename
+            newFilename =  currentName.replace('_sq.png', '.png')
+            os.rename(currentName, newFilename)
+        if (filename[-5:].lower() == '..png'):      
+            newFilename =  currentName.replace('..png', '.png')
+            os.rename(currentName, newFilename)
         if (filename != newFilename):
-            print("\n renamed", filename, newFilename)
-
+            print("\n renamed", filename, '->', newFilename)
 
         img = Image.open(newFilename)        
-        try:             
+        try:            
+            ##
+            # checking if image is in correct mode 
+            if (img.mode == 'RGB'):
+                raise Exception('image is not transparent')  
+            if (img.mode == 'P'  and 'transparency' not in img.info):
+                raise Exception('image is not transparent')  
+            if (img.mode == 'CMYK'):
+                raise Exception('unsupported image type')  
+
             ##
             # cropping image so borders of the img will touch logo edges 
             def hasColored(x,y): 
-                return img.getpixel((x,y))[3] > 0
+                pixelData = img.getpixel((x,y))
+                if (img.mode == 'L' or img.mode == 'LA'):
+                    return pixelData[1] > 0
+                if (img.mode == 'RGBA'):   
+                    return pixelData[3] > 0                 
+                if (img.mode == 'P'):    
+                    return pixelData != img.info['transparency']
             width = img.size[0]
             height = img.size[1]
 
@@ -93,7 +111,6 @@ for filename in Path('./').glob('**/*.png'):
         filesProcessed += 1
     except Exception as e:
         # traceback.print_exception(e)
-        # sys.exit()
         brokenFiles.append([newFilename, str(e)])
 
 sys.stdout.flush()
